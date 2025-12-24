@@ -2,6 +2,23 @@
 
 A modern CHIP-8 emulator with a built-in debugger, using SDL3 and ImGui.
 
+## Getting Started
+
+To get started working with this repo, clone this repo along with its submodules:
+
+`git clone --recursive https://github.com/dadams05/c8ke.git`
+
+If you have already cloned the repo, you can run this command in the top directory and it will download the submodules:
+
+`git submodule update`
+
+After cloning this repo, run these commands to download the dependencies:
+
+```
+cd vcpkg
+bootstrap-vcpkg.bat
+```
+
 ## Features
 
 - Accurate CHIP-8 emulation (timing, sound, instructions)

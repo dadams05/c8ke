@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // custom definitions
 using byte = unsigned char; // 8 bits, 1 byte
@@ -26,8 +26,8 @@ const int DEFAULT_BEEP_AMOUNT = 100; // beep parameter 1
 const int DEFAULT_BEEP_PHASE = 2200; // beep parameter 2
 int current_sine_sample = 0; // something for the beep
 struct CustomAudio {
-	int beepAmount = DEFAULT_BEEP_AMOUNT; 
-	int beepPhase = DEFAULT_BEEP_PHASE; 
+	int beepAmount = DEFAULT_BEEP_AMOUNT;
+	int beepPhase = DEFAULT_BEEP_PHASE;
 };
 CustomAudio customAudio;
 
@@ -46,7 +46,7 @@ enum State {
 static State c8keState = INIT;
 
 // input keys
-std::unordered_map<SDL_Keycode, byte> keymap = { 
+std::unordered_map<SDL_Keycode, byte> keymap = {
 		{SDLK_1, 0x1}, {SDLK_2, 0x2}, {SDLK_3, 0x3}, {SDLK_4, 0xC},
 		{SDLK_Q, 0x4}, {SDLK_W, 0x5}, {SDLK_E, 0x6}, {SDLK_R, 0xD},
 		{SDLK_A, 0x7}, {SDLK_S, 0x8}, {SDLK_D, 0x9}, {SDLK_F, 0xE},

@@ -12,11 +12,11 @@
 #include "SDL3/SDL.h" // v3.2.16
 #include "SDL3/SDL_main.h" // v3.2.16
 #include "SDL3_image/SDL_image.h" // v3.2.4
-#include "ImGui/imgui.h" // v1.92.0
-#include "ImGui/imgui_impl_sdl3.h" // v1.92.0
-#include "ImGui/imgui_impl_sdlrenderer3.h" // v1.92.0
-#include "ImGui/imgui_internal.h" // v1.92.0
-#include "tinyfiledialogs/tinyfiledialogs.h" // v3.19.1
+#include "imgui.h" // v1.92.0
+#include "backends/imgui_impl_sdl3.h" // v1.92.0
+#include "backends/imgui_impl_sdlrenderer3.h" // v1.92.0
+#include "imgui_internal.h" // v1.92.0
+#include "tinyfiledialogs.h" // v3.19.1
 
 #include "c8ke.h"
 
@@ -478,11 +478,14 @@ void draw(c8ke& emu) {
 					romPath = openFileName;
 					std::replace(romPath.begin(), romPath.end(), '\\', '/');
 					c8keState = RELOAD;
-				} else if (romPath.empty()) {
+				}
+				else if (romPath.empty()) {
 					c8keState = INIT;
-				} else if (c8keState == HALT) {
+				}
+				else if (c8keState == HALT) {
 					c8keState = DELAY_HALT;
-				} else {
+				}
+				else {
 					c8keState = DELAYED;
 				}
 			} ImGui::Separator();
@@ -622,7 +625,8 @@ void draw(c8ke& emu) {
 			}
 
 			ImGui::EndMenu();
-		} else {
+		}
+		else {
 			showFgPicker = false;
 			showBgPicker = false;
 			showDbgColor1Picker = false;
@@ -663,10 +667,10 @@ void draw(c8ke& emu) {
 			ImGui::TextColored(customColors.dbgColor2, "%X ", chip8Key);
 			ImGui::SameLine();
 		}
-		
+
 		ImGui::TextColored(customColors.dbgColor1, " < = >  ");
 		ImGui::SameLine();
-		
+
 		for (int col = 0; col < 4; ++col) { // mapped keys
 			byte chip8Key = chip8Keys[row][col];
 			SDL_Keycode keycode = findSDLKeycode(chip8Key);
