@@ -1,54 +1,48 @@
-﻿#include "c8ke.h"
-#include "gui.h"
-
-#include "SDL3/SDL_main.h"
-
-// define variables
-std::string romPath = "";
-uint8_t tempReg = 0;
-int current_sine_sample = 0;
-bool input[16] = { 0 };
-CustomAudio customAudio{ DEFAULT_BEEP_AMOUNT, DEFAULT_BEEP_PHASE };
-State c8keState = INIT;
-c8ke emulator;
-
-
-void checkError(bool cond, std::string msg) {
-	if (cond) {
-		std::cerr << "[c8ke] " << msg << std::endl;
-		exit(EXIT_FAILURE);
-	}
-}
+﻿#include "c8ke.hpp"
 
 void c8ke::resetEmulator(void) {
-	// reset registers to default state
 	pc = DEF_ADDR;
-	std::memset(stack, 0, sizeof(stack));
 	sp = -1;
+	std::memset(stack, 0, sizeof(stack));
 	std::memset(regs, 0, sizeof(regs));
-	index = 0;
 	delay = 0;
 	sound = 0;
+	index = 0;
 	std::memset(mem, 0, SIZE_MEM);
-	// load sprites into memory
-	for (int i = 0; i < SPRITE_SIZE; i++) {
-		mem[SPRITE_ADDR + i] = SPRITES[i];
+	std::memcpy(mem, SPRITES, SPRITE_SIZE);
+	ins = 0;
+	state = INIT;
+	romPath = "";
+	std::memset(input, 0, sizeof(input));
+	temp = 0;
+	currentSine = 0;
+	clearScreen();
+}
+
+void c8ke::clearScreen(void) {
+	for (int y = 0; y < ORIGINAL_HEIGHT; y++) {
+		for (int x = 0; x < ORIGINAL_WIDTH; x++) {
+			screen[y][x] = 0;
+		}
 	}
-	// signal in init state
-	c8keState = INIT;
 }
 
 void c8ke::loadRomFile(std::string path) {
 	// open ROM file in binary mode
 	std::ifstream rom(path, std::ios::binary);
-	checkError(!rom.is_open(), "Failed to open ROM file");
+	if (!rom.is_open()) {
+		std::cerr << "[c8ke] Error opening rom file" << std::endl;
+		exit(1);
+	}
 	// read the file byte by byte
 	uint8_t byte;
-	while (rom.read(reinterpret_cast<char*>(&byte), sizeof(byte))) { mem[pc++] = byte; }
+	while (rom.read(reinterpret_cast<char*>(&byte), sizeof(byte))) { 
+		mem[pc++] = byte; 
+	}
 	// reset used variables
 	pc = DEF_ADDR;
 	rom.close();
-	c8keState = RUNNING;
+	state = RUNNING;
 }
 
 void c8ke::cycleEmulator(void) {
@@ -207,8 +201,8 @@ void c8ke::cycleEmulator(void) {
 			regs[x] = delay;
 			break;
 		case 0x0A:  // Fx0A: wait for a key press, store the value of the key in Vx
-			tempReg = x;
-			c8keState = HALT;
+			temp = x;
+			state = HALT;
 			break;
 		case 0x15: // Fx15: set delay timer = Vx
 			delay = regs[x];
@@ -239,96 +233,4 @@ void c8ke::cycleEmulator(void) {
 		}
 	} break;
 	}
-}
-
-void c8ke::runEmulator(void) {
-	double cycleDelta = 0.0, refreshDelta = 0.0;
-	long long elapsed = 0;
-	std::chrono::high_resolution_clock::time_point now, last;
-
-	last = std::chrono::high_resolution_clock::now();
-	while (c8keState != QUIT) { // main loop
-
-		// reset loaded rom
-		if (c8keState == RELOAD) {
-			clearScreen();
-			resetEmulator();
-			loadRomFile(romPath);
-
-			c8keState = RUNNING;
-			cycleDelta = 0.0;
-			refreshDelta = 0.0;
-			last = std::chrono::high_resolution_clock::now();
-		}
-
-		// reset timing so emulator does not over-compensate
-		if (c8keState == DELAYED) {
-			cycleDelta = 0.0;
-			refreshDelta = 0.0;
-			last = std::chrono::high_resolution_clock::now();
-			c8keState = RUNNING;
-		}
-
-		// completely reset the emulator, except for custom colors
-		if (c8keState == RESET) {
-			clearScreen();
-			resetEmulator();
-			romPath = "";
-
-			c8keState = INIT;
-			cycleDelta = 0.0;
-			refreshDelta = 0.0;
-			last = std::chrono::high_resolution_clock::now();
-
-			ins = 0;
-		}
-
-		// setup for CHIP-8 halt instruction
-		if (c8keState == DELAY_HALT) {
-			cycleDelta = 0.0;
-			refreshDelta = 0.0;
-			last = std::chrono::high_resolution_clock::now();
-			c8keState = HALT;
-		}
-
-		// calculate new timings
-		now = std::chrono::high_resolution_clock::now();
-		elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(now - last).count();
-		cycleDelta += elapsed;
-		refreshDelta += elapsed;
-
-		// handles events, input
-		eventHandler();
-
-		// cycle instructions
-		while (cycleDelta >= CYCLE_TIME) {
-			cycleDelta -= CYCLE_TIME;
-			if (c8keState == RUNNING) cycleEmulator();
-		}
-
-		// update screen, sound, delay
-		if (refreshDelta >= REFRESH_TIME) {
-			refreshDelta -= REFRESH_TIME;
-			drawScreen();
-
-			if (delay > 0) delay--;
-			if (sound > 0) sound--;
-		}
-
-		// actual sound
-		beep(sound > 0);
-
-		// update for next cycle
-		last = now;
-	}
-
-}
-
-int main(int argc, char* args[]) {
-	emulator.resetEmulator();
-	initializeGui();
-	emulator.runEmulator();
-	shutdownGui();
-
-	return EXIT_SUCCESS;
 }

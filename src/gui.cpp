@@ -1,60 +1,18 @@
-#include "gui.h"
-#include "c8ke.h"
+#include "gui.hpp"
 
 
-// variables
-// Emulator
-float scale = 11.0f;
-uint8_t screen[ORIGINAL_HEIGHT][ORIGINAL_WIDTH] = { 0 };
-const char* name = "c8ke";
-int width = 1000;
-int height = 800;
+void checkError(bool cond, std::string msg) {
+	if (cond) {
+		std::cerr << "[c8ke] " << msg << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
 
-std::unordered_map<SDL_Keycode, uint8_t> keymap = {
-	{SDLK_1, 0x1}, {SDLK_2, 0x2}, {SDLK_3, 0x3}, {SDLK_4, 0xC},
-	{SDLK_Q, 0x4}, {SDLK_W, 0x5}, {SDLK_E, 0x6}, {SDLK_R, 0xD},
-	{SDLK_A, 0x7}, {SDLK_S, 0x8}, {SDLK_D, 0x9}, {SDLK_F, 0xE},
-	{SDLK_Z, 0xA}, {SDLK_X, 0x0}, {SDLK_C, 0xB}, {SDLK_V, 0xF},
-};
-
-// SDL
-SDL_Window* window = nullptr;
-SDL_Renderer* renderer = nullptr;
-SDL_Texture* texture = nullptr;
-SDL_AudioStream* audiostream = nullptr;
-SDL_AudioSpec spec = { SDL_AUDIO_F32, 1, 8000 };
-SDL_Event e;
-
-// ImGui
-ImFont* myFont = nullptr;
-
-// GUI state
-bool showFgPicker = false;
-bool showBgPicker = false;
-bool showDbgColor1Picker = false;
-bool showDbgColor2Picker = false;
-bool showDbgColor3Picker = false;
-bool showDbgBgPicker = false;
-bool showDbgHeaderFgPicker = false;
-bool showDbgHeaderBgPicker = false;
-
-CustomColors customColors = {
-	DEFAULT_EMULATOR_FG,
-	DEFAULT_EMULATOR_BG,
-	DEFAULT_DEBUG_COLOR_1,
-	DEFAULT_DEBUG_COLOR_2,
-	DEFAULT_DEBUG_COLOR_3,
-	DEFAULT_DEBUG_BG,
-	DEFAULT_DEBUG_HEADER_FG,
-	DEFAULT_DEBUG_HEADER_BG
-};
-
-
-void initializeGui(void) {
+void GUI::initializeGui(void) {
 	/* SDL */
 	checkError(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO), SDL_GetError());
 	// main window
-	window = SDL_CreateWindow(name, width, height, SDL_WINDOW_HIGH_PIXEL_DENSITY);
+	window = SDL_CreateWindow("c8ke", windowWidth, windowHeight, SDL_WINDOW_HIGH_PIXEL_DENSITY);
 	checkError((window == nullptr), SDL_GetError());
 	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 	// main renderer
@@ -79,19 +37,19 @@ void initializeGui(void) {
 	myFont = io.Fonts->AddFontFromFileTTF("res/RobotoMono-Regular.ttf", 20.0f);
 	checkError((myFont == nullptr), "imgui failed to load custom font");
 	// handler for saving custom color settings
-	ImGuiSettingsHandler handler;
-	handler.TypeName = "Custom_Settings";
-	handler.TypeHash = ImHashStr("Custom_Settings");
-	handler.ReadOpenFn = Settings_ReadOpen;
-	handler.ReadLineFn = Settings_ReadLine;
-	handler.WriteAllFn = Settings_WriteAll;
-	ImGui::GetCurrentContext()->SettingsHandlers.push_back(handler);
+	//ImGuiSettingsHandler handler;
+	//handler.TypeName = "Custom_Settings";
+	//handler.TypeHash = ImHashStr("Custom_Settings");
+	//handler.ReadOpenFn = Settings_ReadOpen;
+	//handler.ReadLineFn = Settings_ReadLine;
+	//handler.WriteAllFn = Settings_WriteAll;
+	//ImGui::GetCurrentContext()->SettingsHandlers.push_back(handler);
 	// platform/renderer backends
 	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
 	ImGui_ImplSDLRenderer3_Init(renderer);
 }
 
-void shutdownGui(void) {
+void GUI::shutdownGui(void) {
 	// safely shutdown ImGui
 	ImGui_ImplSDLRenderer3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
@@ -105,108 +63,95 @@ void shutdownGui(void) {
 	SDL_Quit();
 }
 
-void clearScreen(void) {
-	for (int y = 0; y < ORIGINAL_HEIGHT; y++) {
-		for (int x = 0; x < ORIGINAL_WIDTH; x++) {
-			screen[y][x] = 0;
-		}
-	}
-}
-
-void eventHandler(void) {
+void GUI::eventHandler(bool state, bool input[], uint8_t regs[], uint8_t temp) {
 	while (SDL_PollEvent(&e)) {
 		ImGui_ImplSDL3_ProcessEvent(&e);
-
 		// handle quitting
 		if (e.type == SDL_EVENT_QUIT) {
-			c8keState = QUIT;
+			state = QUIT;
 			return;
 		}
-
 		// handle pausing
 		if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_P) {
-			c8keState = (c8keState == RUNNING) ? PAUSED : RUNNING;
+			state = (state == RUNNING) ? PAUSED : RUNNING;
 			return;
 		}
-
 		// handle all other input
 		if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
 			auto key = keymap.find(e.key.key);
 			if (key != keymap.end()) {
 				bool pressed = (e.type == SDL_EVENT_KEY_DOWN);
 				input[key->second] = pressed;
-
-				if (c8keState == HALT && !pressed) {
-					emulator.regs[tempReg] = key->second;
-					c8keState = RUNNING;
+				if (state == HALT && !pressed) {
+					regs[temp] = key->second;
+					state = RUNNING;
 				}
 			}
 		}
 	}
-
 }
 
 
-static void* Settings_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name) {
-	if (strcmp(name, "Colors") == 0)
-		return &customColors;
-	if (strcmp(name, "Audio") == 0)
-		return &customAudio;
-	return nullptr;
-}
+//static void* Settings_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name) {
+//	if (strcmp(name, "Colors") == 0)
+//		return &customColors;
+//	if (strcmp(name, "Audio") == 0)
+//		return &customAudio;
+//	return nullptr;
+//}
+//
+//static void Settings_ReadLine(ImGuiContext*, ImGuiSettingsHandler*, void* user_data, const char* line) {
+//	CustomColors* colorSettings = (CustomColors*)user_data;
+//	float r, g, b, a;
+//
+//	if (sscanf_s(line, "emuFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+//		colorSettings->emuFg = ImVec4(r, g, b, a);
+//	else if (sscanf_s(line, "emuBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+//		colorSettings->emuBg = ImVec4(r, g, b, a);
+//	else if (sscanf_s(line, "dbgColor1=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+//		colorSettings->dbgColor1 = ImVec4(r, g, b, a);
+//	else if (sscanf_s(line, "dbgColor2=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+//		colorSettings->dbgColor2 = ImVec4(r, g, b, a);
+//	else if (sscanf_s(line, "dbgColor3=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+//		colorSettings->dbgColor3 = ImVec4(r, g, b, a);
+//	else if (sscanf_s(line, "dbgBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+//		colorSettings->dbgBg = ImVec4(r, g, b, a);
+//	else if (sscanf_s(line, "dbgHeaderFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+//		colorSettings->dbgHeaderFg = ImVec4(r, g, b, a);
+//	else if (sscanf_s(line, "dbgHeaderBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+//		colorSettings->dbgHeaderBg = ImVec4(r, g, b, a);
+//
+//	CustomAudio* audioSettings = (CustomAudio*)user_data;
+//	int val;
+//
+//	if (sscanf_s(line, "beepAmount=%d", &val) == 1)
+//		audioSettings->beepAmount = val;
+//	else if (sscanf_s(line, "beepPhase=%d", &val) == 1)
+//		audioSettings->beepPhase = val;
+//
+//}
+//
+//static void Settings_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* out_buf) {
+//	const CustomColors& c = customColors;
+//	out_buf->appendf("[%s][Colors]\n", handler->TypeName);
+//	out_buf->appendf("emuFg=%.3f,%.3f,%.3f,%.3f\n", c.emuFg.x, c.emuFg.y, c.emuFg.z, c.emuFg.w);
+//	out_buf->appendf("emuBg=%.3f,%.3f,%.3f,%.3f\n", c.emuBg.x, c.emuBg.y, c.emuBg.z, c.emuBg.w);
+//	out_buf->appendf("dbgColor1=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor1.x, c.dbgColor1.y, c.dbgColor1.z, c.dbgColor1.w);
+//	out_buf->appendf("dbgColor2=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor2.x, c.dbgColor2.y, c.dbgColor2.z, c.dbgColor2.w);
+//	out_buf->appendf("dbgColor3=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor3.x, c.dbgColor3.y, c.dbgColor3.z, c.dbgColor3.w);
+//	out_buf->appendf("dbgBg=%.3f,%.3f,%.3f,%.3f\n", c.dbgBg.x, c.dbgBg.y, c.dbgBg.z, c.dbgBg.w);
+//	out_buf->appendf("dbgHeaderFg=%.3f,%.3f,%.3f,%.3f\n", c.dbgHeaderFg.x, c.dbgHeaderFg.y, c.dbgHeaderFg.z, c.dbgHeaderFg.w);
+//	out_buf->appendf("dbgHeaderBg=%.3f,%.3f,%.3f,%.3f\n", c.dbgHeaderBg.x, c.dbgHeaderBg.y, c.dbgHeaderBg.z, c.dbgHeaderBg.w);
+//
+//	out_buf->appendf("\n");
+//
+//	const CustomAudio& a = customAudio;
+//	out_buf->appendf("[%s][Audio]\n", handler->TypeName);
+//	out_buf->appendf("beepAmount=%d\n", a.beepAmount);
+//	out_buf->appendf("beepPhase=%d\n", a.beepPhase);
+//}
 
-static void Settings_ReadLine(ImGuiContext*, ImGuiSettingsHandler*, void* user_data, const char* line) {
-	CustomColors* colorSettings = (CustomColors*)user_data;
-	float r, g, b, a;
-
-	if (sscanf_s(line, "emuFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-		colorSettings->emuFg = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "emuBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-		colorSettings->emuBg = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgColor1=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-		colorSettings->dbgColor1 = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgColor2=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-		colorSettings->dbgColor2 = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgColor3=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-		colorSettings->dbgColor3 = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-		colorSettings->dbgBg = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgHeaderFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-		colorSettings->dbgHeaderFg = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgHeaderBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-		colorSettings->dbgHeaderBg = ImVec4(r, g, b, a);
-
-	CustomAudio* audioSettings = (CustomAudio*)user_data;
-	int val;
-
-	if (sscanf_s(line, "beepAmount=%d", &val) == 1)
-		audioSettings->beepAmount = val;
-	else if (sscanf_s(line, "beepPhase=%d", &val) == 1)
-		audioSettings->beepPhase = val;
-
-}
-
-static void Settings_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* out_buf) {
-	const CustomColors& c = customColors;
-	out_buf->appendf("[%s][Colors]\n", handler->TypeName);
-	out_buf->appendf("emuFg=%.3f,%.3f,%.3f,%.3f\n", c.emuFg.x, c.emuFg.y, c.emuFg.z, c.emuFg.w);
-	out_buf->appendf("emuBg=%.3f,%.3f,%.3f,%.3f\n", c.emuBg.x, c.emuBg.y, c.emuBg.z, c.emuBg.w);
-	out_buf->appendf("dbgColor1=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor1.x, c.dbgColor1.y, c.dbgColor1.z, c.dbgColor1.w);
-	out_buf->appendf("dbgColor2=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor2.x, c.dbgColor2.y, c.dbgColor2.z, c.dbgColor2.w);
-	out_buf->appendf("dbgColor3=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor3.x, c.dbgColor3.y, c.dbgColor3.z, c.dbgColor3.w);
-	out_buf->appendf("dbgBg=%.3f,%.3f,%.3f,%.3f\n", c.dbgBg.x, c.dbgBg.y, c.dbgBg.z, c.dbgBg.w);
-	out_buf->appendf("dbgHeaderFg=%.3f,%.3f,%.3f,%.3f\n", c.dbgHeaderFg.x, c.dbgHeaderFg.y, c.dbgHeaderFg.z, c.dbgHeaderFg.w);
-	out_buf->appendf("dbgHeaderBg=%.3f,%.3f,%.3f,%.3f\n", c.dbgHeaderBg.x, c.dbgHeaderBg.y, c.dbgHeaderBg.z, c.dbgHeaderBg.w);
-
-	out_buf->appendf("\n");
-
-	const CustomAudio& a = customAudio;
-	out_buf->appendf("[%s][Audio]\n", handler->TypeName);
-	out_buf->appendf("beepAmount=%d\n", a.beepAmount);
-	out_buf->appendf("beepPhase=%d\n", a.beepPhase);
-}
-
-SDL_Keycode findSDLKeycode(uint8_t chip8Key) {
+SDL_Keycode GUI::findSDLKeycode(uint8_t chip8Key) {
 	for (const auto& [keycode, val] : keymap) {
 		if (val == chip8Key)
 			return keycode;
@@ -218,7 +163,7 @@ SDL_Keycode findSDLKeycode(uint8_t chip8Key) {
 /***** main functions *****/
 
 
-void beep(bool beep) {
+void GUI::beep(bool beep) {
 	if (!beep) { SDL_ClearAudioStream(audiostream); return; }
 
 	const int total = SDL_min(customAudio.beepAmount / sizeof(float), 128); // how many float samples to generate (100 bytes worth, capped at 128 samples)
@@ -234,7 +179,7 @@ void beep(bool beep) {
 	SDL_PutAudioStreamData(audiostream, samples, total * sizeof(float)); // queue the generated samples to the audio stream
 }
 
-void drawScreen(void) {
+void GUI::drawScreen(bool state, std::string romPath, uint8_t screen[ORIGINAL_HEIGHT][ORIGINAL_WIDTH]) {
 	/***** ImGui *****/
 	ImGui_ImplSDLRenderer3_NewFrame();
 	ImGui_ImplSDL3_NewFrame();
@@ -253,29 +198,29 @@ void drawScreen(void) {
 				if (openFileName) {
 					romPath = openFileName;
 					std::replace(romPath.begin(), romPath.end(), '\\', '/');
-					c8keState = RELOAD;
+					state = RELOAD;
 				}
 				else if (romPath.empty()) {
-					c8keState = INIT;
+					state = INIT;
 				}
-				else if (c8keState == HALT) {
-					c8keState = DELAY_HALT;
+				else if (state == HALT) {
+					state = DELAY_HALT;
 				}
 				else {
-					c8keState = DELAYED;
+					state = DELAYED;
 				}
 			} ImGui::Separator();
 
 			if (ImGui::MenuItem("Reset", nullptr)) {
-				if (!romPath.empty()) c8keState = RELOAD;
+				if (!romPath.empty()) state = RELOAD;
 			}ImGui::Separator();
 
 			if (ImGui::MenuItem("Close", nullptr)) {
-				c8keState = RESET;
+				state = RESET;
 			}ImGui::Separator();
 
 			if (ImGui::MenuItem("Quit", nullptr)) {
-				c8keState = QUIT;
+				state = QUIT;
 			}
 
 			ImGui::EndMenu();
@@ -434,7 +379,7 @@ void drawScreen(void) {
 	ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
 	ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x, chip8_screen_pos.y));
-	ImGui::SetNextWindowSize(ImVec2(width - chip8_screen_size.x, chip8_screen_size.y / 2 - 15));
+	ImGui::SetNextWindowSize(ImVec2(windowWidth - chip8_screen_size.x, chip8_screen_size.y / 2 - 15));
 	ImGui::Begin("Controls", nullptr, nonscrollable);
 
 	for (int row = 0; row < 4; ++row) {
@@ -464,112 +409,112 @@ void drawScreen(void) {
 	ImGui::End();
 	ImGui::PopStyleColor(3);
 
-	// main registers
-	ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
-	ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
-	ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x, chip8_screen_pos.y + (chip8_screen_size.y / 2) - 15));
-	ImGui::SetNextWindowSize(ImVec2(width - chip8_screen_size.x, chip8_screen_size.y / 2 + 15));
-	ImGui::Begin("Main Registers", nullptr, nonscrollable);
-	ImVec4 currentColor;
+	//// main registers
+	//ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
+	//ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
+	//ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
+	//ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x, chip8_screen_pos.y + (chip8_screen_size.y / 2) - 15));
+	//ImGui::SetNextWindowSize(ImVec2(width - chip8_screen_size.x, chip8_screen_size.y / 2 + 15));
+	//ImGui::Begin("Main Registers", nullptr, nonscrollable);
+	//ImVec4 currentColor;
 
-	ImGui::TextColored(customColors.dbgColor1, "Program Counter");
-	ImGui::SameLine();
-	currentColor = (emulator.pc == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	ImGui::TextColored(currentColor, "\t%04X", emulator.pc);
+	//ImGui::TextColored(customColors.dbgColor1, "Program Counter");
+	//ImGui::SameLine();
+	//currentColor = (emulator.pc == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	//ImGui::TextColored(currentColor, "\t%04X", emulator.pc);
 
-	ImGui::TextColored(customColors.dbgColor1, "Stack Pointer  ");
-	ImGui::SameLine();
-	currentColor = (emulator.sp == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	ImGui::TextColored(currentColor, "\t%04X", emulator.sp);
+	//ImGui::TextColored(customColors.dbgColor1, "Stack Pointer  ");
+	//ImGui::SameLine();
+	//currentColor = (emulator.sp == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	//ImGui::TextColored(currentColor, "\t%04X", emulator.sp);
 
-	ImGui::TextColored(customColors.dbgColor1, "Cur Instruction");
-	ImGui::SameLine();
-	currentColor = (emulator.ins == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	ImGui::TextColored(currentColor, "\t%04X", emulator.ins);
+	//ImGui::TextColored(customColors.dbgColor1, "Cur Instruction");
+	//ImGui::SameLine();
+	//currentColor = (emulator.ins == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	//ImGui::TextColored(currentColor, "\t%04X", emulator.ins);
 
-	ImGui::TextColored(customColors.dbgColor1, "Index Pointer  ");
-	ImGui::SameLine();
-	currentColor = (emulator.index == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	ImGui::TextColored(currentColor, "\t%04X", emulator.index);
+	//ImGui::TextColored(customColors.dbgColor1, "Index Pointer  ");
+	//ImGui::SameLine();
+	//currentColor = (emulator.index == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	//ImGui::TextColored(currentColor, "\t%04X", emulator.index);
 
-	ImGui::TextColored(customColors.dbgColor1, "Delay Timer    ");
-	ImGui::SameLine();
-	currentColor = (emulator.delay == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	ImGui::TextColored(currentColor, "\t%04X", emulator.delay);
+	//ImGui::TextColored(customColors.dbgColor1, "Delay Timer    ");
+	//ImGui::SameLine();
+	//currentColor = (emulator.delay == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	//ImGui::TextColored(currentColor, "\t%04X", emulator.delay);
 
-	ImGui::TextColored(customColors.dbgColor1, "Sound Timer    ");
-	ImGui::SameLine();
-	currentColor = (emulator.sound == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	ImGui::TextColored(currentColor, "\t%04X", emulator.sound);
+	//ImGui::TextColored(customColors.dbgColor1, "Sound Timer    ");
+	//ImGui::SameLine();
+	//currentColor = (emulator.sound == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	//ImGui::TextColored(currentColor, "\t%04X", emulator.sound);
 
-	ImGui::End();
-	ImGui::PopStyleColor(3);
+	//ImGui::End();
+	//ImGui::PopStyleColor(3);
 
-	// general registers
-	ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
-	ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
-	ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x, chip8_screen_pos.y + chip8_screen_size.y));
-	ImGui::SetNextWindowSize(ImVec2((width - chip8_screen_size.x) / 2, height - chip8_screen_size.y - ImGui::GetFrameHeight()));
-	ImGui::Begin("Registers", nullptr, nonscrollable);
-	for (int i = 0; i < 16; i++) {
-		ImGui::TextColored(customColors.dbgColor1, "0x%01X", i);
-		ImGui::SameLine();
-		currentColor = (emulator.regs[i] == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-		ImGui::TextColored(currentColor, "%04X", emulator.regs[i]);
-	}
-	ImGui::End();
-	ImGui::PopStyleColor(3);
+	//// general registers
+	//ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
+	//ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
+	//ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
+	//ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x, chip8_screen_pos.y + chip8_screen_size.y));
+	//ImGui::SetNextWindowSize(ImVec2((width - chip8_screen_size.x) / 2, height - chip8_screen_size.y - ImGui::GetFrameHeight()));
+	//ImGui::Begin("Registers", nullptr, nonscrollable);
+	//for (int i = 0; i < 16; i++) {
+	//	ImGui::TextColored(customColors.dbgColor1, "0x%01X", i);
+	//	ImGui::SameLine();
+	//	currentColor = (emulator.regs[i] == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	//	ImGui::TextColored(currentColor, "%04X", emulator.regs[i]);
+	//}
+	//ImGui::End();
+	//ImGui::PopStyleColor(3);
 
-	// stack
-	ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
-	ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
-	ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x + ((width - chip8_screen_size.x) / 2), chip8_screen_pos.y + chip8_screen_size.y));
-	ImGui::SetNextWindowSize(ImVec2((width - chip8_screen_size.x) / 2, height - chip8_screen_size.y - ImGui::GetFrameHeight()));
-	ImGui::Begin("Stack", nullptr, nonscrollable);
-	for (int i = 0; i < 16; i++) {
-		ImGui::TextColored(customColors.dbgColor1, "0x%01X", i);
-		ImGui::SameLine();
-		currentColor = (emulator.stack[i] == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-		ImGui::TextColored(currentColor, "%04X", emulator.stack[i]);
-	}
-	ImGui::End();
-	ImGui::PopStyleColor(3);
+	//// stack
+	//ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
+	//ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
+	//ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
+	//ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x + ((width - chip8_screen_size.x) / 2), chip8_screen_pos.y + chip8_screen_size.y));
+	//ImGui::SetNextWindowSize(ImVec2((width - chip8_screen_size.x) / 2, height - chip8_screen_size.y - ImGui::GetFrameHeight()));
+	//ImGui::Begin("Stack", nullptr, nonscrollable);
+	//for (int i = 0; i < 16; i++) {
+	//	ImGui::TextColored(customColors.dbgColor1, "0x%01X", i);
+	//	ImGui::SameLine();
+	//	currentColor = (emulator.stack[i] == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	//	ImGui::TextColored(currentColor, "%04X", emulator.stack[i]);
+	//}
+	//ImGui::End();
+	//ImGui::PopStyleColor(3);
 
-	// memory
-	ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
-	ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
-	ImGui::PushStyleColor(ImGuiCol_TitleBgActive, customColors.dbgHeaderBg);
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
-	ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x, chip8_screen_pos.y + chip8_screen_size.y));
-	ImGui::SetNextWindowSize(ImVec2(chip8_screen_size.x, height - chip8_screen_size.y - ImGui::GetFrameHeight()));
-	ImGui::Begin("Memory", nullptr, scrollable);
-	bool byte2 = false;
+	//// memory
+	//ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
+	//ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
+	//ImGui::PushStyleColor(ImGuiCol_TitleBgActive, customColors.dbgHeaderBg);
+	//ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
+	//ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x, chip8_screen_pos.y + chip8_screen_size.y));
+	//ImGui::SetNextWindowSize(ImVec2(chip8_screen_size.x, height - chip8_screen_size.y - ImGui::GetFrameHeight()));
+	//ImGui::Begin("Memory", nullptr, scrollable);
+	//bool byte2 = false;
 
-	for (int i = 0; i < SIZE_MEM; i += 16) {
-		ImGui::TextColored(customColors.dbgColor1, "0x%04X\t", i);
-		ImGui::SameLine();
+	//for (int i = 0; i < SIZE_MEM; i += 16) {
+	//	ImGui::TextColored(customColors.dbgColor1, "0x%04X\t", i);
+	//	ImGui::SameLine();
 
-		for (int j = 0; j < 16; j++) {
-			unsigned char byte = emulator.mem[i + j];
-			currentColor = (byte == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-			ImGui::TextColored(currentColor, "%02X", byte);
-			ImGui::SameLine();
+	//	for (int j = 0; j < 16; j++) {
+	//		unsigned char byte = emulator.mem[i + j];
+	//		currentColor = (byte == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	//		ImGui::TextColored(currentColor, "%02X", byte);
+	//		ImGui::SameLine();
 
-			if (byte2 && j < 15) {
-				ImGui::Text(" ");
-				ImGui::SameLine();
-			}
-			byte2 = !byte2;
-		}
+	//		if (byte2 && j < 15) {
+	//			ImGui::Text(" ");
+	//			ImGui::SameLine();
+	//		}
+	//		byte2 = !byte2;
+	//	}
 
-		ImGui::NewLine();
-	}
+	//	ImGui::NewLine();
+	//}
 
-	ImGui::End();
-	ImGui::PopStyleColor(4);
+	//ImGui::End();
+	//ImGui::PopStyleColor(4);
 
 	/***** SDL *****/
 	Uint8 fr = (Uint8)(customColors.emuFg.x * 255.0f);

@@ -4,11 +4,11 @@ project(c8ke LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# get dependencies using vcpkg
+# get dependencies via vcpkg
 find_package(SDL3 CONFIG REQUIRED)
 find_package(SDL3_image CONFIG REQUIRED)
 
-# get dependencies using cmake (just imgui)
+# get dependencies via cmake
 include(FetchContent)
 FetchContent_Declare(
     imgui
@@ -41,6 +41,7 @@ add_executable(c8ke
     "src/c8ke.cpp"
     "src/tinyfiledialogs.c"
     "src/gui.cpp"
+    "src/main.cpp"
 )
 target_include_directories(c8ke
     PRIVATE
@@ -55,8 +56,8 @@ target_link_libraries(c8ke
 # post build commands
 add_custom_command(TARGET c8ke POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_RUNTIME_DLLS:c8ke>
-        $<TARGET_FILE_DIR:c8ke>
+       $<TARGET_RUNTIME_DLLS:c8ke>
+       $<TARGET_FILE_DIR:c8ke>
     COMMAND_EXPAND_LISTS
 )
 add_custom_command(TARGET c8ke POST_BUILD
