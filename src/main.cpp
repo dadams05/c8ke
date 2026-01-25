@@ -16,41 +16,39 @@ void run() {
 	while (emulator.state != QUIT) {
 		// reset loaded rom
 		if (emulator.state == RELOAD) {
-			emulator.clearScreen();
+			cycleDelta = 0.0;
+			refreshDelta = 0.0;
 			emulator.resetEmulator();
 			emulator.loadRomFile(emulator.romPath);
 			emulator.state = RUNNING;
-			cycleDelta = 0.0;
-			refreshDelta = 0.0;
 			last = std::chrono::high_resolution_clock::now();
 		}
-		// reset timing so emulator does not over-compensate
+
+		// reset timing so emulator does not overcompensate
 		if (emulator.state == DELAYED) {
 			cycleDelta = 0.0;
 			refreshDelta = 0.0;
-			last = std::chrono::high_resolution_clock::now();
 			emulator.state = RUNNING;
+			last = std::chrono::high_resolution_clock::now();
 		}
+
 		// completely reset the emulator, except for custom colors
 		if (emulator.state == RESET) {
-			//clearScreen();
-			emulator.resetEmulator();
-			emulator.romPath = "";
-
-			emulator.state = INIT;
 			cycleDelta = 0.0;
 			refreshDelta = 0.0;
+			emulator.resetEmulator();
+			emulator.romPath = "";
 			last = std::chrono::high_resolution_clock::now();
-
-			emulator.ins = 0;
 		}
+
 		// setup for CHIP-8 halt instruction
 		if (emulator.state == DELAY_HALT) {
 			cycleDelta = 0.0;
 			refreshDelta = 0.0;
-			last = std::chrono::high_resolution_clock::now();
 			emulator.state = HALT;
+			last = std::chrono::high_resolution_clock::now();
 		}
+
 		// calculate new timings
 		now = std::chrono::high_resolution_clock::now();
 		elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(now - last).count();
@@ -58,17 +56,18 @@ void run() {
 		refreshDelta += elapsed;
 
 		// handles events, input
-		gui.eventHandler(emulator.state, emulator.input, emulator.regs, emulator.temp);
+		gui.eventHandler(emulator);
 
 		// cycle instructions
 		while (cycleDelta >= CYCLE_TIME) {
 			cycleDelta -= CYCLE_TIME;
 			if (emulator.state == RUNNING) emulator.cycleEmulator();
 		}
+
 		// update screen, sound, delay
 		if (refreshDelta >= REFRESH_TIME) {
 			refreshDelta -= REFRESH_TIME;
-			gui.drawScreen(emulator.state, emulator.romPath, emulator.screen);
+			gui.drawScreen(emulator);
 
 			if (emulator.delay > 0) emulator.delay--;
 			if (emulator.sound > 0) emulator.sound--;

@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "c8ke.hpp"
 
 
 void checkError(bool cond, std::string msg) {
@@ -8,89 +9,13 @@ void checkError(bool cond, std::string msg) {
 	}
 }
 
-void GUI::initializeGui(void) {
-	/* SDL */
-	checkError(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO), SDL_GetError());
-	// main window
-	window = SDL_CreateWindow("c8ke", windowWidth, windowHeight, SDL_WINDOW_HIGH_PIXEL_DENSITY);
-	checkError((window == nullptr), SDL_GetError());
-	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-	// main renderer
-	renderer = SDL_CreateRenderer(window, nullptr);
-	checkError((renderer == nullptr), SDL_GetError());
-	// main texture, or screen to draw to
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ORIGINAL_WIDTH, ORIGINAL_HEIGHT);
-	checkError((texture == nullptr), SDL_GetError());
-	SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
-	// main audiostream
-	audiostream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr);
-	checkError((audiostream == nullptr), SDL_GetError());
-	SDL_ResumeAudioStreamDevice(audiostream);
-	// clear SDL events
-	SDL_zero(e);
-
-	/* imgui */
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	// custom font
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	myFont = io.Fonts->AddFontFromFileTTF("res/RobotoMono-Regular.ttf", 20.0f);
-	checkError((myFont == nullptr), "imgui failed to load custom font");
-	// handler for saving custom color settings
-	//ImGuiSettingsHandler handler;
-	//handler.TypeName = "Custom_Settings";
-	//handler.TypeHash = ImHashStr("Custom_Settings");
-	//handler.ReadOpenFn = Settings_ReadOpen;
-	//handler.ReadLineFn = Settings_ReadLine;
-	//handler.WriteAllFn = Settings_WriteAll;
-	//ImGui::GetCurrentContext()->SettingsHandlers.push_back(handler);
-	// platform/renderer backends
-	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
-	ImGui_ImplSDLRenderer3_Init(renderer);
-}
-
-void GUI::shutdownGui(void) {
-	// safely shutdown ImGui
-	ImGui_ImplSDLRenderer3_Shutdown();
-	ImGui_ImplSDL3_Shutdown();
-	ImGui::DestroyContext();
-
-	// safely shutdown SDL
-	if (audiostream) { SDL_DestroyAudioStream(audiostream); audiostream = nullptr; }
-	if (texture) { SDL_DestroyTexture(texture); texture = nullptr; }
-	if (renderer) { SDL_DestroyRenderer(renderer); renderer = nullptr; }
-	if (window) { SDL_DestroyWindow(window); window = nullptr; }
-	SDL_Quit();
-}
-
-void GUI::eventHandler(bool state, bool input[], uint8_t regs[], uint8_t temp) {
-	while (SDL_PollEvent(&e)) {
-		ImGui_ImplSDL3_ProcessEvent(&e);
-		// handle quitting
-		if (e.type == SDL_EVENT_QUIT) {
-			state = QUIT;
-			return;
-		}
-		// handle pausing
-		if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_P) {
-			state = (state == RUNNING) ? PAUSED : RUNNING;
-			return;
-		}
-		// handle all other input
-		if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
-			auto key = keymap.find(e.key.key);
-			if (key != keymap.end()) {
-				bool pressed = (e.type == SDL_EVENT_KEY_DOWN);
-				input[key->second] = pressed;
-				if (state == HALT && !pressed) {
-					regs[temp] = key->second;
-					state = RUNNING;
-				}
-			}
-		}
+SDL_Keycode GUI::findSDLKeycode(uint8_t chip8Key) {
+	for (const auto& [keycode, val] : keymap) {
+		if (val == chip8Key)
+			return keycode;
 	}
+	return SDLK_UNKNOWN;
 }
-
 
 //static void* Settings_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name) {
 //	if (strcmp(name, "Colors") == 0)
@@ -151,17 +76,92 @@ void GUI::eventHandler(bool state, bool input[], uint8_t regs[], uint8_t temp) {
 //	out_buf->appendf("beepPhase=%d\n", a.beepPhase);
 //}
 
-SDL_Keycode GUI::findSDLKeycode(uint8_t chip8Key) {
-	for (const auto& [keycode, val] : keymap) {
-		if (val == chip8Key)
-			return keycode;
-	}
-	return SDLK_UNKNOWN;
+void GUI::initializeGui() {
+	/* SDL */
+	checkError(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO), SDL_GetError());
+	// main window
+	window = SDL_CreateWindow("c8ke", windowWidth, windowHeight, SDL_WINDOW_HIGH_PIXEL_DENSITY);
+	checkError((window == nullptr), SDL_GetError());
+	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+	// main renderer
+	renderer = SDL_CreateRenderer(window, nullptr);
+	checkError((renderer == nullptr), SDL_GetError());
+	// main texture, or screen to draw to
+	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, ORIGINAL_WIDTH, ORIGINAL_HEIGHT);
+	checkError((texture == nullptr), SDL_GetError());
+	SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+	// main audiostream
+	audiostream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr);
+	checkError((audiostream == nullptr), SDL_GetError());
+	SDL_ResumeAudioStreamDevice(audiostream);
+	// clear SDL events
+	SDL_zero(e);
+
+	/* imgui */
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	// custom font
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	myFont = io.Fonts->AddFontFromFileTTF("res/RobotoMono-Regular.ttf", 20.0f);
+	checkError((myFont == nullptr), "imgui failed to load custom font");
+	// handler for saving custom color settings
+	//ImGuiSettingsHandler handler;
+	//handler.TypeName = "Custom_Settings";
+	//handler.TypeHash = ImHashStr("Custom_Settings");
+	//handler.ReadOpenFn = Settings_ReadOpen;
+	//handler.ReadLineFn = Settings_ReadLine;
+	//handler.WriteAllFn = Settings_WriteAll;
+	//ImGui::GetCurrentContext()->SettingsHandlers.push_back(handler);
+	// platform/renderer backends
+	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+	ImGui_ImplSDLRenderer3_Init(renderer);
 }
 
+void GUI::shutdownGui() {
+	// safely shutdown ImGui
+	ImGui_ImplSDLRenderer3_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
+	ImGui::DestroyContext();
 
-/***** main functions *****/
+	// safely shutdown SDL
+	if (audiostream) { SDL_DestroyAudioStream(audiostream); audiostream = nullptr; }
+	if (texture) { SDL_DestroyTexture(texture); texture = nullptr; }
+	if (renderer) { SDL_DestroyRenderer(renderer); renderer = nullptr; }
+	if (window) { SDL_DestroyWindow(window); window = nullptr; }
+	SDL_Quit();
+}
 
+void GUI::eventHandler(c8ke& emulator) {
+	while (SDL_PollEvent(&e)) {
+		ImGui_ImplSDL3_ProcessEvent(&e);
+
+		// handle quitting
+		if (e.type == SDL_EVENT_QUIT) {
+			emulator.state = QUIT;
+			return;
+		}
+
+		// handle pausing
+		if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_P) {
+			emulator.state = (emulator.state == RUNNING) ? PAUSED : RUNNING;
+			return;
+		}
+
+		// handle all other input
+		if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
+			auto key = keymap.find(e.key.key);
+			if (key != keymap.end()) {
+				bool pressed = (e.type == SDL_EVENT_KEY_DOWN);
+				emulator.input[key->second] = pressed;
+				if (emulator.state == HALT && !pressed) {
+					emulator.regs[emulator.temp] = key->second;
+					emulator.state = RUNNING;
+				}
+			}
+		}
+
+	}
+}
 
 void GUI::beep(bool beep) {
 	if (!beep) { SDL_ClearAudioStream(audiostream); return; }
@@ -179,8 +179,8 @@ void GUI::beep(bool beep) {
 	SDL_PutAudioStreamData(audiostream, samples, total * sizeof(float)); // queue the generated samples to the audio stream
 }
 
-void GUI::drawScreen(bool state, std::string romPath, uint8_t screen[ORIGINAL_HEIGHT][ORIGINAL_WIDTH]) {
-	/***** ImGui *****/
+void GUI::drawScreen(c8ke& emulator) {
+	/* ImGui */
 	ImGui_ImplSDLRenderer3_NewFrame();
 	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
@@ -196,31 +196,31 @@ void GUI::drawScreen(bool state, std::string romPath, uint8_t screen[ORIGINAL_HE
 				char const* filterPatterns[1] = { "*.ch8" };
 				char* openFileName = tinyfd_openFileDialog("Choose a CHIP-8 rom file to open", nullptr, 1, filterPatterns, "CH8 File", 1);
 				if (openFileName) {
-					romPath = openFileName;
-					std::replace(romPath.begin(), romPath.end(), '\\', '/');
-					state = RELOAD;
+					emulator.romPath = openFileName;
+					std::replace(emulator.romPath.begin(), emulator.romPath.end(), '\\', '/');
+					emulator.state = RELOAD;
 				}
-				else if (romPath.empty()) {
-					state = INIT;
+				else if (emulator.romPath.empty()) {
+					emulator.state = INIT;
 				}
-				else if (state == HALT) {
-					state = DELAY_HALT;
+				else if (emulator.state == HALT) {
+					emulator.state = DELAY_HALT;
 				}
 				else {
-					state = DELAYED;
+					emulator.state = DELAYED;
 				}
 			} ImGui::Separator();
 
 			if (ImGui::MenuItem("Reset", nullptr)) {
-				if (!romPath.empty()) state = RELOAD;
+				if (!emulator.romPath.empty()) emulator.state = RELOAD;
 			}ImGui::Separator();
 
 			if (ImGui::MenuItem("Close", nullptr)) {
-				state = RESET;
+				emulator.state = RESET;
 			}ImGui::Separator();
 
 			if (ImGui::MenuItem("Quit", nullptr)) {
-				state = QUIT;
+				emulator.state = QUIT;
 			}
 
 			ImGui::EndMenu();
@@ -371,6 +371,7 @@ void GUI::drawScreen(bool state, std::string romPath, uint8_t screen[ORIGINAL_HE
 	ImGui::Image((ImTextureID)texture, ImVec2(texture->w * scale, texture->h * scale));
 	ImVec2 chip8_screen_pos = ImGui::GetWindowPos();
 	ImVec2 chip8_screen_size = ImGui::GetWindowSize();
+
 	ImGui::End();
 	ImGui::PopStyleVar(2);
 
@@ -402,121 +403,121 @@ void GUI::drawScreen(bool state, std::string romPath, uint8_t screen[ORIGINAL_HE
 	}
 
 	const char* text = "Pause [P]";
-	float windowWidth = ImGui::GetWindowSize().x;
+	float a = ImGui::GetWindowSize().x;
 	float textWidth = ImGui::CalcTextSize(text).x;
-	ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+	ImGui::SetCursorPosX((a - textWidth) * 0.5f);
 	ImGui::TextColored(customColors.dbgColor2, text);
 	ImGui::End();
 	ImGui::PopStyleColor(3);
 
-	//// main registers
-	//ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
-	//ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
-	//ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
-	//ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x, chip8_screen_pos.y + (chip8_screen_size.y / 2) - 15));
-	//ImGui::SetNextWindowSize(ImVec2(width - chip8_screen_size.x, chip8_screen_size.y / 2 + 15));
-	//ImGui::Begin("Main Registers", nullptr, nonscrollable);
-	//ImVec4 currentColor;
+	// main registers
+	ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
+	ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
+	ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x, chip8_screen_pos.y + (chip8_screen_size.y / 2) - 15));
+	ImGui::SetNextWindowSize(ImVec2(windowWidth - chip8_screen_size.x, chip8_screen_size.y / 2 + 15));
+	ImGui::Begin("Main Registers", nullptr, nonscrollable);
+	ImVec4 currentColor;
 
-	//ImGui::TextColored(customColors.dbgColor1, "Program Counter");
-	//ImGui::SameLine();
-	//currentColor = (emulator.pc == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	//ImGui::TextColored(currentColor, "\t%04X", emulator.pc);
+	ImGui::TextColored(customColors.dbgColor1, "Program Counter");
+	ImGui::SameLine();
+	currentColor = (emulator.pc == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	ImGui::TextColored(currentColor, "\t%04X", emulator.pc);
 
-	//ImGui::TextColored(customColors.dbgColor1, "Stack Pointer  ");
-	//ImGui::SameLine();
-	//currentColor = (emulator.sp == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	//ImGui::TextColored(currentColor, "\t%04X", emulator.sp);
+	ImGui::TextColored(customColors.dbgColor1, "Stack Pointer  ");
+	ImGui::SameLine();
+	currentColor = (emulator.sp == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	ImGui::TextColored(currentColor, "\t%04X", emulator.sp);
 
-	//ImGui::TextColored(customColors.dbgColor1, "Cur Instruction");
-	//ImGui::SameLine();
-	//currentColor = (emulator.ins == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	//ImGui::TextColored(currentColor, "\t%04X", emulator.ins);
+	ImGui::TextColored(customColors.dbgColor1, "Cur Instruction");
+	ImGui::SameLine();
+	currentColor = (emulator.ins == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	ImGui::TextColored(currentColor, "\t%04X", emulator.ins);
 
-	//ImGui::TextColored(customColors.dbgColor1, "Index Pointer  ");
-	//ImGui::SameLine();
-	//currentColor = (emulator.index == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	//ImGui::TextColored(currentColor, "\t%04X", emulator.index);
+	ImGui::TextColored(customColors.dbgColor1, "Index Pointer  ");
+	ImGui::SameLine();
+	currentColor = (emulator.index == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	ImGui::TextColored(currentColor, "\t%04X", emulator.index);
 
-	//ImGui::TextColored(customColors.dbgColor1, "Delay Timer    ");
-	//ImGui::SameLine();
-	//currentColor = (emulator.delay == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	//ImGui::TextColored(currentColor, "\t%04X", emulator.delay);
+	ImGui::TextColored(customColors.dbgColor1, "Delay Timer    ");
+	ImGui::SameLine();
+	currentColor = (emulator.delay == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	ImGui::TextColored(currentColor, "\t%04X", emulator.delay);
 
-	//ImGui::TextColored(customColors.dbgColor1, "Sound Timer    ");
-	//ImGui::SameLine();
-	//currentColor = (emulator.sound == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	//ImGui::TextColored(currentColor, "\t%04X", emulator.sound);
+	ImGui::TextColored(customColors.dbgColor1, "Sound Timer    ");
+	ImGui::SameLine();
+	currentColor = (emulator.sound == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+	ImGui::TextColored(currentColor, "\t%04X", emulator.sound);
 
-	//ImGui::End();
-	//ImGui::PopStyleColor(3);
+	ImGui::End();
+	ImGui::PopStyleColor(3);
 
-	//// general registers
-	//ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
-	//ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
-	//ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
-	//ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x, chip8_screen_pos.y + chip8_screen_size.y));
-	//ImGui::SetNextWindowSize(ImVec2((width - chip8_screen_size.x) / 2, height - chip8_screen_size.y - ImGui::GetFrameHeight()));
-	//ImGui::Begin("Registers", nullptr, nonscrollable);
-	//for (int i = 0; i < 16; i++) {
-	//	ImGui::TextColored(customColors.dbgColor1, "0x%01X", i);
-	//	ImGui::SameLine();
-	//	currentColor = (emulator.regs[i] == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	//	ImGui::TextColored(currentColor, "%04X", emulator.regs[i]);
-	//}
-	//ImGui::End();
-	//ImGui::PopStyleColor(3);
+	// general registers
+	ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
+	ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
+	ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x, chip8_screen_pos.y + chip8_screen_size.y));
+	ImGui::SetNextWindowSize(ImVec2((windowWidth - chip8_screen_size.x) / 2, windowHeight - chip8_screen_size.y - ImGui::GetFrameHeight()));
+	ImGui::Begin("Registers", nullptr, nonscrollable);
+	for (int i = 0; i < 16; i++) {
+		ImGui::TextColored(customColors.dbgColor1, "0x%01X", i);
+		ImGui::SameLine();
+		currentColor = (emulator.regs[i] == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+		ImGui::TextColored(currentColor, "%04X", emulator.regs[i]);
+	}
+	ImGui::End();
+	ImGui::PopStyleColor(3);
 
-	//// stack
-	//ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
-	//ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
-	//ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
-	//ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x + ((width - chip8_screen_size.x) / 2), chip8_screen_pos.y + chip8_screen_size.y));
-	//ImGui::SetNextWindowSize(ImVec2((width - chip8_screen_size.x) / 2, height - chip8_screen_size.y - ImGui::GetFrameHeight()));
-	//ImGui::Begin("Stack", nullptr, nonscrollable);
-	//for (int i = 0; i < 16; i++) {
-	//	ImGui::TextColored(customColors.dbgColor1, "0x%01X", i);
-	//	ImGui::SameLine();
-	//	currentColor = (emulator.stack[i] == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	//	ImGui::TextColored(currentColor, "%04X", emulator.stack[i]);
-	//}
-	//ImGui::End();
-	//ImGui::PopStyleColor(3);
+	// stack
+	ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
+	ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
+	ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x + chip8_screen_size.x + ((windowWidth - chip8_screen_size.x) / 2), chip8_screen_pos.y + chip8_screen_size.y));
+	ImGui::SetNextWindowSize(ImVec2((windowWidth - chip8_screen_size.x) / 2, windowHeight - chip8_screen_size.y - ImGui::GetFrameHeight()));
+	ImGui::Begin("Stack", nullptr, nonscrollable);
+	for (int i = 0; i < 16; i++) {
+		ImGui::TextColored(customColors.dbgColor1, "0x%01X", i);
+		ImGui::SameLine();
+		currentColor = (emulator.stack[i] == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+		ImGui::TextColored(currentColor, "%04X", emulator.stack[i]);
+	}
+	ImGui::End();
+	ImGui::PopStyleColor(3);
 
-	//// memory
-	//ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
-	//ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
-	//ImGui::PushStyleColor(ImGuiCol_TitleBgActive, customColors.dbgHeaderBg);
-	//ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
-	//ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x, chip8_screen_pos.y + chip8_screen_size.y));
-	//ImGui::SetNextWindowSize(ImVec2(chip8_screen_size.x, height - chip8_screen_size.y - ImGui::GetFrameHeight()));
-	//ImGui::Begin("Memory", nullptr, scrollable);
-	//bool byte2 = false;
+	// memory
+	ImGui::PushStyleColor(ImGuiCol_Text, customColors.dbgHeaderFg);
+	ImGui::PushStyleColor(ImGuiCol_TitleBg, customColors.dbgHeaderBg);
+	ImGui::PushStyleColor(ImGuiCol_TitleBgActive, customColors.dbgHeaderBg);
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, customColors.dbgBg);
+	ImGui::SetNextWindowPos(ImVec2(chip8_screen_pos.x, chip8_screen_pos.y + chip8_screen_size.y));
+	ImGui::SetNextWindowSize(ImVec2(chip8_screen_size.x, windowHeight - chip8_screen_size.y - ImGui::GetFrameHeight()));
+	ImGui::Begin("Memory", nullptr, scrollable);
+	bool byte2 = false;
 
-	//for (int i = 0; i < SIZE_MEM; i += 16) {
-	//	ImGui::TextColored(customColors.dbgColor1, "0x%04X\t", i);
-	//	ImGui::SameLine();
+	for (int i = 0; i < SIZE_MEM; i += 16) {
+		ImGui::TextColored(customColors.dbgColor1, "0x%04X\t", i);
+		ImGui::SameLine();
 
-	//	for (int j = 0; j < 16; j++) {
-	//		unsigned char byte = emulator.mem[i + j];
-	//		currentColor = (byte == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
-	//		ImGui::TextColored(currentColor, "%02X", byte);
-	//		ImGui::SameLine();
+		for (int j = 0; j < 16; j++) {
+			unsigned char byte = emulator.mem[i + j];
+			currentColor = (byte == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
+			ImGui::TextColored(currentColor, "%02X", byte);
+			ImGui::SameLine();
 
-	//		if (byte2 && j < 15) {
-	//			ImGui::Text(" ");
-	//			ImGui::SameLine();
-	//		}
-	//		byte2 = !byte2;
-	//	}
+			if (byte2 && j < 15) {
+				ImGui::Text(" ");
+				ImGui::SameLine();
+			}
+			byte2 = !byte2;
+		}
 
-	//	ImGui::NewLine();
-	//}
+		ImGui::NewLine();
+	}
 
-	//ImGui::End();
-	//ImGui::PopStyleColor(4);
+	ImGui::End();
+	ImGui::PopStyleColor(4);
 
-	/***** SDL *****/
+	/* SDL */
 	Uint8 fr = (Uint8)(customColors.emuFg.x * 255.0f);
 	Uint8 fg = (Uint8)(customColors.emuFg.y * 255.0f);
 	Uint8 fb = (Uint8)(customColors.emuFg.z * 255.0f);
@@ -533,7 +534,7 @@ void GUI::drawScreen(bool state, std::string romPath, uint8_t screen[ORIGINAL_HE
 	SDL_SetRenderDrawColor(renderer, fr, fg, fb, fa);
 	for (int y = 0; y < ORIGINAL_HEIGHT; y++) {
 		for (int x = 0; x < ORIGINAL_WIDTH; x++) {
-			if (screen[y][x]) {
+			if (emulator.screen[y][x]) {
 				SDL_FRect pixel = { (float)x, (float)y, 1, 1 }; // render 1x1 pixels
 				SDL_RenderFillRect(renderer, &pixel);
 			}
@@ -541,8 +542,7 @@ void GUI::drawScreen(bool state, std::string romPath, uint8_t screen[ORIGINAL_HE
 	}
 	SDL_SetRenderTarget(renderer, nullptr);
 
-
-	/***** render and present *****/
+	/* render and present everything */
 	ImGui::Render();
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);

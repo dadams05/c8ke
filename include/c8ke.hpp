@@ -1,16 +1,13 @@
 ﻿#pragma once
 #include "consts.hpp"
-#include <ios>
 #include <chrono>
-#include <random>
-#include <string>
 #include <fstream>
 #include <iostream>
+#include <random>
+#include <string>
 
-using std::string;
 
 // memory
-
 constexpr uint16_t DEF_ADDR = 0x200; // default address; start address of user program
 constexpr uint8_t SPRITE_ADDR = 0x50; // start address of sprite data
 constexpr uint8_t SPRITE_SIZE = 80; // sprite data memory size in bytes
@@ -50,20 +47,17 @@ public:
 	uint8_t delay{}; // delay register
 	uint8_t sound{}; // sound register
 	uint16_t index{}; // index register
-	// important vars
-	uint8_t screen[ORIGINAL_HEIGHT][ORIGINAL_WIDTH] = { 0 };
+	// other vars
+	uint8_t screen[ORIGINAL_HEIGHT][ORIGINAL_WIDTH] = { 0 }; // individual pixels of the screen
 	uint8_t mem[SIZE_MEM]{}; // emulator memory
 	uint16_t ins{}; // current instruction
 	State state{}; // current state of the emulator
-	string romPath{}; // the path of the loaded ROM file
+	std::string romPath{}; // the path of the loaded ROM file
 	bool input[16]{}; // has the states of all the keys
-	// other vars
 	uint8_t temp{}; // temporary value holder
-	int currentSine{}; // something for the beep
-	
 	// methods
-	void resetEmulator(void); // reset the emulator to a fresh state
-	void clearScreen(void); // reset the screen array to clear the screen
-	void loadRomFile(std::string path); // load a ROM file into the emulator
-	void cycleEmulator(void); // fetch, decode, and execute an instruction
+	void clearScreen(); // reset the screen array to clear the screen
+	void resetEmulator(); // reset the emulator to a fresh state
+	void loadRomFile(const std::string& path); // load a ROM file into the emulator
+	void cycleEmulator(); // fetch, decode, and execute an instruction
 };
