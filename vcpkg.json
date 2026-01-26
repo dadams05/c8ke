@@ -1,7 +1,4 @@
 {
-  "dependencies": [
-    "sdl3",
-    "sdl3-image"
-  ],
+  "dependencies": ["sdl3"],
   "builtin-baseline": "5d57f5a0a5469a23e005fc79a7c1814ab4fc967e"
 }
