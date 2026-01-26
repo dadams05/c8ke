@@ -4,9 +4,11 @@ An emulator for the CHIP-8 interpreted language written in C++
 
 > *For more information: [CHIP-8 - Wikipedia](https://en.wikipedia.org/wiki/CHIP-8)*
 
+![Screenshot 1](res/screenshot.png)
+
 ## Getting Started
 
-To get the project and its vcpkg dependency submodule:
+To get the project and vcpkg submodule:
 
 ```bash
 git clone --recursive https://github.com/dadams05/c8ke.git
@@ -22,25 +24,16 @@ git submodule update --init --recursive
 
 If there’s no `vcpkg.exe` in the `vcpkg/` folder, you need to bootstrap vcpkg so the tool builds itself:
 
-**Windows**
-
 ```bash
 cd vcpkg
 bootstrap-vcpkg.bat
 ```
 
-**Linux**
-
-```bash
-cd vcpkg
-./bootstrap-vcpkg.sh
-```
-
 ### Configure and build
 
-**For IDE users with CMake support:**
+**For Visual Studio Users:**
 
-- The bundled CMakePresets.json already sets the appropriate toolchain flags.
+- The included CMakePresets.json already sets the appropriate toolchain flags.
 - Just select the desired preset (e.g. x64 Debug) and CMake will handle dependency installation and building automatically.
 
 **Other environments**
@@ -63,23 +56,17 @@ cmake --build build
 - Beep audio tuning (amount & phase)
 - Pause/resume support
 
-## Screenshots
+## ROMs
 
-![Screenshot 1](screenshots/screenshot1.png)
+There are no ROMs included in this repo, but you can find some here:
 
-![Screenshot 2](screenshots/screenshot2.png)
-
-![Screenshot 3](screenshots/screenshot3.png)
+- [ROMs for testing the emulator](https://github.com/Timendus/chip8-test-suite)
+- [Games and Demos](https://github.com/kripod/chip8-roms)
 
 ## Credits
 
 - [SDL3](https://github.com/libsdl-org/SDL)
 - [Dear ImGui](https://github.com/ocornut/imgui)
 - [tinyfiledialogs](https://sourceforge.net/projects/tinyfiledialogs/)
-
-## Extra
-
-There are no ROMs included in this repo, but you can find some here:
-
-- [ROMs for testing the emulator](https://github.com/Timendus/chip8-test-suite)
-- [Games and Demos](https://github.com/kripod/chip8-roms)
+- [Google Fonts - Roboto Mono](https://fonts.google.com/specimen/Roboto+Mono)
+- [Terraria](https://terraria.org/) (for the cake icon)
