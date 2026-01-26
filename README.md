@@ -4,7 +4,7 @@ An emulator for the CHIP-8 interpreted language written in C++
 
 > *For more information: [CHIP-8 - Wikipedia](https://en.wikipedia.org/wiki/CHIP-8)*
 
-![Screenshot 1](res/screenshot.png)
+<img src="res/screenshot.png" width=50% height=50%>
 
 ## Getting Started
 
