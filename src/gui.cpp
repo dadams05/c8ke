@@ -11,8 +11,7 @@ void checkError(bool cond, std::string msg) {
 
 SDL_Keycode GUI::findSDLKeycode(uint8_t chip8Key) {
 	for (const auto& [keycode, val] : keymap) {
-		if (val == chip8Key)
-			return keycode;
+		if (val == chip8Key) return keycode;
 	}
 	return SDLK_UNKNOWN;
 }
@@ -103,7 +102,7 @@ void GUI::initializeGui() {
 	// custom font
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	myFont = io.Fonts->AddFontFromFileTTF("res/RobotoMono-Regular.ttf", 20.0f);
-	checkError((myFont == nullptr), "imgui failed to load custom font");
+	checkError((myFont == nullptr), "ImGui failed to load custom font");
 	// handler for saving custom color settings
 	//ImGuiSettingsHandler handler;
 	//handler.TypeName = "Custom_Settings";
@@ -167,7 +166,7 @@ void GUI::beep(bool beep) {
 	if (!beep) { SDL_ClearAudioStream(audiostream); return; }
 
 	const int total = SDL_min(customAudio.beepAmount / sizeof(float), 128); // how many float samples to generate (100 bytes worth, capped at 128 samples)
-	float samples[128];  // Array to hold generated audio samples
+	float samples[128];  // array to hold generated audio samples
 
 	for (int i = 0; i < total; i++) {
 		float gain = (i < 32) ? (float)i / 32.0f : 1.0f; // volume gradually increases over the first 32 samples
@@ -199,30 +198,27 @@ void GUI::drawScreen(c8ke& emulator) {
 					emulator.romPath = openFileName;
 					std::replace(emulator.romPath.begin(), emulator.romPath.end(), '\\', '/');
 					emulator.state = RELOAD;
-				}
-				else if (emulator.romPath.empty()) {
+				} else if (emulator.romPath.empty()) {
 					emulator.state = INIT;
-				}
-				else if (emulator.state == HALT) {
+				} else if (emulator.state == HALT) {
 					emulator.state = DELAY_HALT;
-				}
-				else {
+				} else {
 					emulator.state = DELAYED;
 				}
 			} ImGui::Separator();
 
 			if (ImGui::MenuItem("Reset", nullptr)) {
 				if (!emulator.romPath.empty()) emulator.state = RELOAD;
-			}ImGui::Separator();
+			} ImGui::Separator();
 
 			if (ImGui::MenuItem("Close", nullptr)) {
 				emulator.state = RESET;
-			}ImGui::Separator();
+			} ImGui::Separator();
 
 			if (ImGui::MenuItem("Quit", nullptr)) {
 				emulator.state = QUIT;
 			}
-
+			
 			ImGui::EndMenu();
 		}
 
@@ -234,8 +230,7 @@ void GUI::drawScreen(c8ke& emulator) {
 				if (showFgPicker) {
 					ImGui::SameLine(0, 10);
 					ImGui::ColorPicker4("##emuFgPicker", (float*)&customColors.emuFg, COLOR_EDIT_FLAGS_PICKER);
-				}
-				ImGui::Separator();
+				} ImGui::Separator();
 
 				if (ImGui::ColorButton("##emuBg", customColors.emuBg, COLOR_EDIT_FLAGS_COLOR_BUTTON, ImVec2(20, 20))) showBgPicker = !showBgPicker;
 				ImGui::SameLine();
@@ -243,8 +238,7 @@ void GUI::drawScreen(c8ke& emulator) {
 				if (showBgPicker) {
 					ImGui::SameLine(0, 10);
 					ImGui::ColorPicker4("##emuBgPicker", (float*)&customColors.emuBg, COLOR_EDIT_FLAGS_PICKER);
-				}
-				ImGui::Separator();
+				} ImGui::Separator();
 
 				if (ImGui::ColorButton("##dbgColor1", customColors.dbgColor1, COLOR_EDIT_FLAGS_COLOR_BUTTON, ImVec2(20, 20))) showDbgColor1Picker = !showDbgColor1Picker;
 				ImGui::SameLine();
@@ -252,8 +246,7 @@ void GUI::drawScreen(c8ke& emulator) {
 				if (showDbgColor1Picker) {
 					ImGui::SameLine(0, 10);
 					ImGui::ColorPicker4("##dbgColor1Picker", (float*)&customColors.dbgColor1, COLOR_EDIT_FLAGS_PICKER);
-				}
-				ImGui::Separator();
+				} ImGui::Separator();
 
 				if (ImGui::ColorButton("##dbgColor2", customColors.dbgColor2, COLOR_EDIT_FLAGS_COLOR_BUTTON, ImVec2(20, 20))) showDbgColor2Picker = !showDbgColor2Picker;
 				ImGui::SameLine();
@@ -261,8 +254,7 @@ void GUI::drawScreen(c8ke& emulator) {
 				if (showDbgColor2Picker) {
 					ImGui::SameLine(0, 10);
 					ImGui::ColorPicker4("##dbgColor2Picker", (float*)&customColors.dbgColor2, COLOR_EDIT_FLAGS_PICKER);
-				}
-				ImGui::Separator();
+				} ImGui::Separator();
 
 				if (ImGui::ColorButton("##dbgColor3", customColors.dbgColor3, COLOR_EDIT_FLAGS_COLOR_BUTTON, ImVec2(20, 20))) showDbgColor3Picker = !showDbgColor3Picker;
 				ImGui::SameLine();
@@ -270,8 +262,7 @@ void GUI::drawScreen(c8ke& emulator) {
 				if (showDbgColor3Picker) {
 					ImGui::SameLine(0, 10);
 					ImGui::ColorPicker4("##dbgColor3Picker", (float*)&customColors.dbgColor3, COLOR_EDIT_FLAGS_PICKER);
-				}
-				ImGui::Separator();
+				} ImGui::Separator();
 
 				if (ImGui::ColorButton("##dbgBg", customColors.dbgBg, COLOR_EDIT_FLAGS_COLOR_BUTTON, ImVec2(20, 20))) showDbgBgPicker = !showDbgBgPicker;
 				ImGui::SameLine();
@@ -279,8 +270,7 @@ void GUI::drawScreen(c8ke& emulator) {
 				if (showDbgBgPicker) {
 					ImGui::SameLine(0, 10);
 					ImGui::ColorPicker4("##dbgBgColor", (float*)&customColors.dbgBg, COLOR_EDIT_FLAGS_PICKER);
-				}
-				ImGui::Separator();
+				} ImGui::Separator();
 
 				if (ImGui::ColorButton("##dbgHeaderFg", customColors.dbgHeaderFg, COLOR_EDIT_FLAGS_COLOR_BUTTON, ImVec2(20, 20))) showDbgHeaderFgPicker = !showDbgHeaderFgPicker;
 				ImGui::SameLine();
@@ -288,8 +278,7 @@ void GUI::drawScreen(c8ke& emulator) {
 				if (showDbgHeaderFgPicker) {
 					ImGui::SameLine(0, 10);
 					ImGui::ColorPicker4("##dbgHeaderFgPicker", (float*)&customColors.dbgHeaderFg, COLOR_EDIT_FLAGS_PICKER);
-				}
-				ImGui::Separator();
+				} ImGui::Separator();
 
 				if (ImGui::ColorButton("##dbgHeaderBg", customColors.dbgHeaderBg, COLOR_EDIT_FLAGS_PICKER, ImVec2(20, 20))) showDbgHeaderBgPicker = !showDbgHeaderBgPicker;
 				ImGui::SameLine();
@@ -297,8 +286,7 @@ void GUI::drawScreen(c8ke& emulator) {
 				if (showDbgHeaderBgPicker) {
 					ImGui::SameLine(0, 10);
 					ImGui::ColorPicker4("##dbgHeaderBgPicker", (float*)&customColors.dbgHeaderBg, COLOR_EDIT_FLAGS_PICKER);
-				}
-				ImGui::Separator();
+				} ImGui::Separator();
 
 				if (ImGui::MenuItem("Reset to default")) {
 					customColors.emuFg = DEFAULT_EMULATOR_FG;
@@ -346,8 +334,7 @@ void GUI::drawScreen(c8ke& emulator) {
 			}
 
 			ImGui::EndMenu();
-		}
-		else {
+		} else {
 			showFgPicker = false;
 			showBgPicker = false;
 			showDbgColor1Picker = false;
@@ -371,7 +358,6 @@ void GUI::drawScreen(c8ke& emulator) {
 	ImGui::Image((ImTextureID)texture, ImVec2(texture->w * scale, texture->h * scale));
 	ImVec2 chip8_screen_pos = ImGui::GetWindowPos();
 	ImVec2 chip8_screen_size = ImGui::GetWindowSize();
-
 	ImGui::End();
 	ImGui::PopStyleVar(2);
 
@@ -497,20 +483,17 @@ void GUI::drawScreen(c8ke& emulator) {
 	for (int i = 0; i < SIZE_MEM; i += 16) {
 		ImGui::TextColored(customColors.dbgColor1, "0x%04X\t", i);
 		ImGui::SameLine();
-
 		for (int j = 0; j < 16; j++) {
 			unsigned char byte = emulator.mem[i + j];
 			currentColor = (byte == 0) ? customColors.dbgColor3 : customColors.dbgColor2;
 			ImGui::TextColored(currentColor, "%02X", byte);
 			ImGui::SameLine();
-
 			if (byte2 && j < 15) {
 				ImGui::Text(" ");
 				ImGui::SameLine();
 			}
 			byte2 = !byte2;
 		}
-
 		ImGui::NewLine();
 	}
 

@@ -8,17 +8,13 @@ void c8ke::clearScreen() {
 void c8ke::resetEmulator() {
 	pc = DEF_ADDR;
 	sp = -1;
+	delay = sound = index = ins = temp = 0;
+	state = INIT;
 	std::memset(stack, 0, sizeof(stack));
 	std::memset(regs, 0, sizeof(regs));
-	delay = 0;
-	sound = 0;
-	index = 0;
+	std::memset(input, 0, sizeof(input));
 	std::memset(mem, 0, SIZE_MEM);
 	std::memcpy(mem + SPRITE_SIZE, SPRITES, SPRITE_SIZE);
-	ins = 0;
-	state = INIT;
-	std::memset(input, 0, sizeof(input));
-	temp = 0;
 	clearScreen();
 }
 

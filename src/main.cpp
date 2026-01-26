@@ -1,70 +1,65 @@
 #include "SDL3/SDL_main.h"
 #include "c8ke.hpp"
 #include "gui.hpp"
+#include <thread>
+
 
 c8ke emulator;
 GUI gui;
 
 void run() {
-	long long elapsed{};
-	double cycleDelta{}, refreshDelta{};
-	std::chrono::high_resolution_clock::time_point now{}, last{};
-
-	last = std::chrono::high_resolution_clock::now();
+	using namespace std::chrono;
+	double cycleDelta = 0.0, refreshDelta = 0.0;
+	high_resolution_clock::time_point last = high_resolution_clock::now();
 
 	// main loop
 	while (emulator.state != QUIT) {
-		// reset loaded rom
-		if (emulator.state == RELOAD) {
-			cycleDelta = 0.0;
-			refreshDelta = 0.0;
-			emulator.resetEmulator();
-			emulator.loadRomFile(emulator.romPath);
-			emulator.state = RUNNING;
-			last = std::chrono::high_resolution_clock::now();
+		switch (emulator.state) {
+			case RELOAD: // resets the loaded rom
+				cycleDelta = refreshDelta = 0.0;
+				emulator.resetEmulator();
+				emulator.loadRomFile(emulator.romPath);
+				emulator.state = RUNNING;
+				last = high_resolution_clock::now();
+				break;
+			case DELAYED: // resets timing so emulator does not overcompensate
+				cycleDelta = refreshDelta = 0.0;
+				emulator.state = RUNNING;
+				last = high_resolution_clock::now();
+				break;
+			case RESET: // completely resets the emulator, except for custom colors/audio
+				cycleDelta = refreshDelta = 0.0;
+				emulator.resetEmulator();
+				emulator.romPath = "";
+				last = high_resolution_clock::now();
+				break;
+			case DELAY_HALT: // sets up for CHIP-8 halt instruction
+				cycleDelta = refreshDelta = 0.0;
+				emulator.state = HALT;
+				last = high_resolution_clock::now();
+				break;
+			default:
+				break;
 		}
 
-		// reset timing so emulator does not overcompensate
-		if (emulator.state == DELAYED) {
-			cycleDelta = 0.0;
-			refreshDelta = 0.0;
-			emulator.state = RUNNING;
-			last = std::chrono::high_resolution_clock::now();
-		}
+		// calculate elapsed time
+		high_resolution_clock::time_point now = high_resolution_clock::now();
+		auto elapsedNs = duration_cast<nanoseconds>(now - last).count();
+		cycleDelta += elapsedNs;
+		refreshDelta += elapsedNs;
 
-		// completely reset the emulator, except for custom colors
-		if (emulator.state == RESET) {
-			cycleDelta = 0.0;
-			refreshDelta = 0.0;
-			emulator.resetEmulator();
-			emulator.romPath = "";
-			last = std::chrono::high_resolution_clock::now();
-		}
-
-		// setup for CHIP-8 halt instruction
-		if (emulator.state == DELAY_HALT) {
-			cycleDelta = 0.0;
-			refreshDelta = 0.0;
-			emulator.state = HALT;
-			last = std::chrono::high_resolution_clock::now();
-		}
-
-		// calculate new timings
-		now = std::chrono::high_resolution_clock::now();
-		elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(now - last).count();
-		cycleDelta += elapsed;
-		refreshDelta += elapsed;
-
-		// handles events, input
+		// handles input/events
 		gui.eventHandler(emulator);
 
-		// cycle instructions
-		while (cycleDelta >= CYCLE_TIME) {
+		// run emulator cycles (limit backlog to avoid spiral)
+		uint8_t maxCycles = 100;
+		while (cycleDelta >= CYCLE_TIME && maxCycles-- > 0) {
 			cycleDelta -= CYCLE_TIME;
-			if (emulator.state == RUNNING) emulator.cycleEmulator();
+			if (emulator.state == RUNNING)
+				emulator.cycleEmulator();
 		}
 
-		// update screen, sound, delay
+		// update screen and timers at refresh rate
 		if (refreshDelta >= REFRESH_TIME) {
 			refreshDelta -= REFRESH_TIME;
 			gui.drawScreen(emulator);
@@ -76,7 +71,12 @@ void run() {
 		// actual sound
 		gui.beep(emulator.sound > 0);
 
-		// update for next cycle
+		// sleep a tiny amount to reduce CPU usage when idle
+		auto sleepNs = std::min(CYCLE_TIME - cycleDelta, REFRESH_TIME - refreshDelta);
+		if (sleepNs > 0)
+			std::this_thread::sleep_for(nanoseconds(static_cast<long long>(sleepNs)));
+
+		// update timestamp
 		last = now;
 	}
 }

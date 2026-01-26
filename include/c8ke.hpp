@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "consts.hpp"
+#include "globals.hpp"
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -7,7 +7,7 @@
 #include <string>
 
 
-// memory
+/* memory */
 constexpr uint16_t DEF_ADDR = 0x200; // default address; start address of user program
 constexpr uint8_t SPRITE_ADDR = 0x50; // start address of sprite data
 constexpr uint8_t SPRITE_SIZE = 80; // sprite data memory size in bytes
@@ -30,16 +30,16 @@ constexpr uint8_t SPRITES[SPRITE_SIZE] = { // sprites to store in memory
 			0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 };
 
-// timing
+/* timing */
 constexpr uint16_t CLK = 500; // 500 Hz; 500 cycles/sec
 constexpr double CYCLE_TIME = 1000000000.0 / CLK;
 constexpr uint8_t FPS = 60; // 60 FPS; 60 frames/sec
 constexpr double REFRESH_TIME = 1000000000.0 / FPS;
 
-// main emulator class
+/* main emulator class */
 class c8ke {
 public:
-	// emulator registers
+	/* emulator registers */
 	uint16_t pc{}; // program counter
 	uint8_t sp{}; // stack pointer
 	uint16_t stack[16]{}; // stack
@@ -47,15 +47,15 @@ public:
 	uint8_t delay{}; // delay register
 	uint8_t sound{}; // sound register
 	uint16_t index{}; // index register
-	// other vars
-	uint8_t screen[ORIGINAL_HEIGHT][ORIGINAL_WIDTH] = { 0 }; // individual pixels of the screen
+	/* misc vars */
+	uint8_t screen[ORIGINAL_HEIGHT][ORIGINAL_WIDTH] = {0}; // individual pixels of the screen
 	uint8_t mem[SIZE_MEM]{}; // emulator memory
 	uint16_t ins{}; // current instruction
 	State state{}; // current state of the emulator
 	std::string romPath{}; // the path of the loaded ROM file
 	bool input[16]{}; // has the states of all the keys
 	uint8_t temp{}; // temporary value holder
-	// methods
+	/* methods */
 	void clearScreen(); // reset the screen array to clear the screen
 	void resetEmulator(); // reset the emulator to a fresh state
 	void loadRomFile(const std::string& path); // load a ROM file into the emulator
