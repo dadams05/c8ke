@@ -42,6 +42,7 @@ add_executable(c8ke
     "src/c8ke.cpp"
     "src/gui.cpp"
     "src/tinyfiledialogs.cpp"
+    "src/RobotoMono-Regular.cpp"
     "c8ke.rc"
 )
 target_include_directories(c8ke
@@ -63,9 +64,4 @@ add_custom_command(TARGET c8ke POST_BUILD
        "$<TARGET_RUNTIME_DLLS:c8ke>"
        "$<TARGET_FILE_DIR:c8ke>"
     COMMAND_EXPAND_LISTS
-)
-add_custom_command(TARGET c8ke POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/res/c8ke.ico"
-        "$<TARGET_FILE_DIR:c8ke>"
 )

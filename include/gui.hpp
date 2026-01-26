@@ -15,6 +15,10 @@
 
 class c8ke; // forward declaration
 
+/* for embedding custom font */
+extern unsigned char RobotoMono_Regular_ttf[];
+extern unsigned int RobotoMono_Regular_ttf_len;
+
 /* for drawing debug controls */
 constexpr uint8_t chip8Keys[4][4] = {
 	{ 0x1, 0x2, 0x3, 0xC },

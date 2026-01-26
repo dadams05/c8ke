@@ -99,10 +99,17 @@ void GUI::initializeGui() {
 	/* imgui */
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	// custom font
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	myFont = io.Fonts->AddFontFromFileTTF("res/RobotoMono-Regular.ttf", 20.0f);
-	checkError((myFont == nullptr), "ImGui failed to load custom font");
+	// custom font
+	ImFontConfig config;
+	config.FontDataOwnedByAtlas = false;
+	myFont = io.Fonts->AddFontFromMemoryTTF(
+		RobotoMono_Regular_ttf,
+		RobotoMono_Regular_ttf_len,
+		20.0f,
+		&config
+	);
+	checkError(!myFont, "Failed to load embedded font");
 	// handler for saving custom color settings
 	//ImGuiSettingsHandler handler;
 	//handler.TypeName = "Custom_Settings";
