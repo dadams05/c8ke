@@ -9,71 +9,76 @@ void checkError(bool cond, std::string msg) {
 	}
 }
 
+static void* Settings_ReadOpen(ImGuiContext*, ImGuiSettingsHandler* handler, const char* name) {
+	GUI* gui = static_cast<GUI*>(handler->UserData);
+
+	if (strcmp(name, "Colors") == 0)
+		return &gui->customColors;
+	if (strcmp(name, "Audio") == 0)
+		return &gui->customAudio;
+	return nullptr;
+}
+
+static void Settings_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* user_data, const char* line) {
+	GUI* gui = static_cast<GUI*>(handler->UserData);
+	CustomColors* colorSettings = (CustomColors*)user_data;
+	float r, g, b, a;
+
+	if (sscanf_s(line, "emuFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+		colorSettings->emuFg = ImVec4(r, g, b, a);
+	else if (sscanf_s(line, "emuBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+		colorSettings->emuBg = ImVec4(r, g, b, a);
+	else if (sscanf_s(line, "dbgColor1=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+		colorSettings->dbgColor1 = ImVec4(r, g, b, a);
+	else if (sscanf_s(line, "dbgColor2=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+		colorSettings->dbgColor2 = ImVec4(r, g, b, a);
+	else if (sscanf_s(line, "dbgColor3=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+		colorSettings->dbgColor3 = ImVec4(r, g, b, a);
+	else if (sscanf_s(line, "dbgBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+		colorSettings->dbgBg = ImVec4(r, g, b, a);
+	else if (sscanf_s(line, "dbgHeaderFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+		colorSettings->dbgHeaderFg = ImVec4(r, g, b, a);
+	else if (sscanf_s(line, "dbgHeaderBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+		colorSettings->dbgHeaderBg = ImVec4(r, g, b, a);
+
+	CustomAudio* audioSettings = (CustomAudio*)user_data;
+	int val;
+
+	if (sscanf_s(line, "beepAmount=%d", &val) == 1)
+		audioSettings->beepAmount = val;
+	else if (sscanf_s(line, "beepPhase=%d", &val) == 1)
+		audioSettings->beepPhase = val;
+
+}
+
+static void Settings_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* out_buf) {
+	GUI* gui = static_cast<GUI*>(handler->UserData);
+
+	const CustomColors& c = gui->customColors;
+	out_buf->appendf("[%s][Colors]\n", handler->TypeName);
+	out_buf->appendf("emuFg=%.3f,%.3f,%.3f,%.3f\n", c.emuFg.x, c.emuFg.y, c.emuFg.z, c.emuFg.w);
+	out_buf->appendf("emuBg=%.3f,%.3f,%.3f,%.3f\n", c.emuBg.x, c.emuBg.y, c.emuBg.z, c.emuBg.w);
+	out_buf->appendf("dbgColor1=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor1.x, c.dbgColor1.y, c.dbgColor1.z, c.dbgColor1.w);
+	out_buf->appendf("dbgColor2=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor2.x, c.dbgColor2.y, c.dbgColor2.z, c.dbgColor2.w);
+	out_buf->appendf("dbgColor3=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor3.x, c.dbgColor3.y, c.dbgColor3.z, c.dbgColor3.w);
+	out_buf->appendf("dbgBg=%.3f,%.3f,%.3f,%.3f\n", c.dbgBg.x, c.dbgBg.y, c.dbgBg.z, c.dbgBg.w);
+	out_buf->appendf("dbgHeaderFg=%.3f,%.3f,%.3f,%.3f\n", c.dbgHeaderFg.x, c.dbgHeaderFg.y, c.dbgHeaderFg.z, c.dbgHeaderFg.w);
+	out_buf->appendf("dbgHeaderBg=%.3f,%.3f,%.3f,%.3f\n", c.dbgHeaderBg.x, c.dbgHeaderBg.y, c.dbgHeaderBg.z, c.dbgHeaderBg.w);
+
+	out_buf->appendf("\n");
+
+	const CustomAudio& a = gui->customAudio;
+	out_buf->appendf("[%s][Audio]\n", handler->TypeName);
+	out_buf->appendf("beepAmount=%d\n", a.beepAmount);
+	out_buf->appendf("beepPhase=%d\n", a.beepPhase);
+}
+
 SDL_Keycode GUI::findSDLKeycode(uint8_t chip8Key) {
 	for (const auto& [keycode, val] : keymap) {
 		if (val == chip8Key) return keycode;
 	}
 	return SDLK_UNKNOWN;
 }
-
-//static void* Settings_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name) {
-//	if (strcmp(name, "Colors") == 0)
-//		return &customColors;
-//	if (strcmp(name, "Audio") == 0)
-//		return &customAudio;
-//	return nullptr;
-//}
-//
-//static void Settings_ReadLine(ImGuiContext*, ImGuiSettingsHandler*, void* user_data, const char* line) {
-//	CustomColors* colorSettings = (CustomColors*)user_data;
-//	float r, g, b, a;
-//
-//	if (sscanf_s(line, "emuFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-//		colorSettings->emuFg = ImVec4(r, g, b, a);
-//	else if (sscanf_s(line, "emuBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-//		colorSettings->emuBg = ImVec4(r, g, b, a);
-//	else if (sscanf_s(line, "dbgColor1=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-//		colorSettings->dbgColor1 = ImVec4(r, g, b, a);
-//	else if (sscanf_s(line, "dbgColor2=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-//		colorSettings->dbgColor2 = ImVec4(r, g, b, a);
-//	else if (sscanf_s(line, "dbgColor3=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-//		colorSettings->dbgColor3 = ImVec4(r, g, b, a);
-//	else if (sscanf_s(line, "dbgBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-//		colorSettings->dbgBg = ImVec4(r, g, b, a);
-//	else if (sscanf_s(line, "dbgHeaderFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-//		colorSettings->dbgHeaderFg = ImVec4(r, g, b, a);
-//	else if (sscanf_s(line, "dbgHeaderBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
-//		colorSettings->dbgHeaderBg = ImVec4(r, g, b, a);
-//
-//	CustomAudio* audioSettings = (CustomAudio*)user_data;
-//	int val;
-//
-//	if (sscanf_s(line, "beepAmount=%d", &val) == 1)
-//		audioSettings->beepAmount = val;
-//	else if (sscanf_s(line, "beepPhase=%d", &val) == 1)
-//		audioSettings->beepPhase = val;
-//
-//}
-//
-//static void Settings_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* out_buf) {
-//	const CustomColors& c = customColors;
-//	out_buf->appendf("[%s][Colors]\n", handler->TypeName);
-//	out_buf->appendf("emuFg=%.3f,%.3f,%.3f,%.3f\n", c.emuFg.x, c.emuFg.y, c.emuFg.z, c.emuFg.w);
-//	out_buf->appendf("emuBg=%.3f,%.3f,%.3f,%.3f\n", c.emuBg.x, c.emuBg.y, c.emuBg.z, c.emuBg.w);
-//	out_buf->appendf("dbgColor1=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor1.x, c.dbgColor1.y, c.dbgColor1.z, c.dbgColor1.w);
-//	out_buf->appendf("dbgColor2=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor2.x, c.dbgColor2.y, c.dbgColor2.z, c.dbgColor2.w);
-//	out_buf->appendf("dbgColor3=%.3f,%.3f,%.3f,%.3f\n", c.dbgColor3.x, c.dbgColor3.y, c.dbgColor3.z, c.dbgColor3.w);
-//	out_buf->appendf("dbgBg=%.3f,%.3f,%.3f,%.3f\n", c.dbgBg.x, c.dbgBg.y, c.dbgBg.z, c.dbgBg.w);
-//	out_buf->appendf("dbgHeaderFg=%.3f,%.3f,%.3f,%.3f\n", c.dbgHeaderFg.x, c.dbgHeaderFg.y, c.dbgHeaderFg.z, c.dbgHeaderFg.w);
-//	out_buf->appendf("dbgHeaderBg=%.3f,%.3f,%.3f,%.3f\n", c.dbgHeaderBg.x, c.dbgHeaderBg.y, c.dbgHeaderBg.z, c.dbgHeaderBg.w);
-//
-//	out_buf->appendf("\n");
-//
-//	const CustomAudio& a = customAudio;
-//	out_buf->appendf("[%s][Audio]\n", handler->TypeName);
-//	out_buf->appendf("beepAmount=%d\n", a.beepAmount);
-//	out_buf->appendf("beepPhase=%d\n", a.beepPhase);
-//}
 
 void GUI::initializeGui() {
 	/* SDL */
@@ -96,12 +101,11 @@ void GUI::initializeGui() {
 	// clear SDL events
 	SDL_zero(e);
 
-	/* imgui */
+	/* ImGui */
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	// custom font
-	ImFontConfig config;
 	config.FontDataOwnedByAtlas = false;
 	myFont = io.Fonts->AddFontFromMemoryTTF(
 		RobotoMono_Regular_ttf,
@@ -111,13 +115,13 @@ void GUI::initializeGui() {
 	);
 	checkError(!myFont, "Failed to load embedded font");
 	// handler for saving custom color settings
-	//ImGuiSettingsHandler handler;
-	//handler.TypeName = "Custom_Settings";
-	//handler.TypeHash = ImHashStr("Custom_Settings");
-	//handler.ReadOpenFn = Settings_ReadOpen;
-	//handler.ReadLineFn = Settings_ReadLine;
-	//handler.WriteAllFn = Settings_WriteAll;
-	//ImGui::GetCurrentContext()->SettingsHandlers.push_back(handler);
+	handler.TypeName = "Custom_Settings";
+	handler.TypeHash = ImHashStr("Custom_Settings");
+	handler.UserData = this; // pass a pointer to this GUI instance
+	handler.ReadOpenFn = Settings_ReadOpen;
+	handler.ReadLineFn = Settings_ReadLine;
+	handler.WriteAllFn = Settings_WriteAll;
+	ImGui::GetCurrentContext()->SettingsHandlers.push_back(handler);
 	// platform/renderer backends
 	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
 	ImGui_ImplSDLRenderer3_Init(renderer);

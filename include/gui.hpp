@@ -65,10 +65,9 @@ struct CustomAudio {
 	int beepAmount = DEFAULT_BEEP_AMOUNT;
 	int beepPhase = DEFAULT_BEEP_PHASE;
 };
-
-//static void Settings_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* out_buf, struct );
-//static void Settings_ReadLine(ImGuiContext*, ImGuiSettingsHandler*, void* user_data, const char* line);
-//static void* Settings_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name);
+static void* Settings_ReadOpen(ImGuiContext*, ImGuiSettingsHandler* handler, const char* name);
+static void Settings_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* user_data, const char* line);
+static void Settings_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* out_buf);
 
 /* main GUI class */
 class GUI {
@@ -81,6 +80,8 @@ private:
 	SDL_AudioSpec spec = { SDL_AUDIO_F32, 1, 8000 }; // format, channels, frequency
 	SDL_Event e{};
 	/* ImGui */
+	ImGuiSettingsHandler handler;
+	ImFontConfig config;
 	ImFont* myFont = nullptr;
 	/* vars */
 	int windowWidth = 1000; // width of the entire window
