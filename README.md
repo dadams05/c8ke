@@ -14,7 +14,7 @@ To get the project and vcpkg submodule:
 git clone --recursive https://github.com/dadams05/c8ke.git
 ```
 
-If you already cloned without submodules, get them with:
+If you already cloned without the submodule, or need to get the submodule again, get it with:
 
 ```bash
 git submodule update --init --recursive
@@ -22,7 +22,7 @@ git submodule update --init --recursive
 
 ### Bootstrap vcpkg
 
-If there’s no `vcpkg.exe` in the `vcpkg/` folder, you need to bootstrap vcpkg so the tool builds itself:
+If thereâ€™s no `vcpkg.exe` in the `vcpkg/` folder, you need to bootstrap vcpkg so the tool builds itself:
 
 ```bash
 cd vcpkg
@@ -33,12 +33,12 @@ bootstrap-vcpkg.bat
 
 **For Visual Studio Users:**
 
-- The included CMakePresets.json already sets the appropriate toolchain flags.
+- This project was originally developed in Visual Studio so the included CMakePresets.json already sets the appropriate toolchain flags.
 - Just select the desired preset (e.g. x64 Debug) and CMake will handle dependency installation and building automatically.
 
 **Other environments**
 
-If you’re not using and IDE with CMake support, you must tell CMake to use the vcpkg toolchain so it installs and links dependencies correctly:
+If youâ€™re not using and IDE with CMake support, you must tell CMake to use the vcpkg toolchain so it installs and links dependencies correctly:
 
 ```bash
 cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
@@ -61,7 +61,7 @@ cmake --build build
 There are no ROMs included in this repo, but you can find some here:
 
 - [ROMs for testing the emulator](https://github.com/Timendus/chip8-test-suite)
-- [Games and Demos](https://github.com/kripod/chip8-roms)
+- [Games and demos](https://github.com/kripod/chip8-roms)
 
 ## Credits
 
