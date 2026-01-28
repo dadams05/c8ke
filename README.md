@@ -31,14 +31,14 @@ bootstrap-vcpkg.bat
 
 ### Configure and build
 
-**For Visual Studio Users:**
+**Visual Studio:**
 
-- This project was originally developed in Visual Studio so the included CMakePresets.json already sets the appropriate toolchain flags.
-- Just select the desired preset (e.g. x64 Debug) and CMake will handle dependency installation and building automatically.
+- This project was originally developed in Visual Studio so the included `CMakePresets.json` already sets the appropriate toolchain flags.
+- Just select the desired preset (e.g. _x64 Debug_) and CMake will handle dependency installation and building automatically.
 
-**Other environments**
+**Other environments:**
 
-If you’re not using and IDE with CMake support, you must tell CMake to use the vcpkg toolchain so it installs and links dependencies correctly:
+If you’re unable to use the included `CMakePresets.json`, you must tell CMake to use the vcpkg toolchain so it installs and links dependencies correctly:
 
 ```bash
 cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
