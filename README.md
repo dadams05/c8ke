@@ -4,6 +4,17 @@ An emulator for the CHIP-8 interpreted language written in C++. For more informa
 
 ![Screenshot 1](res/screenshot.png)
 
+## Features
+
+- Accurate CHIP-8 emulation (timing, sound, instructions)
+- Customizable colors for screen and debugger (via ImGui)
+- Built-in debugger:
+  - Registers, stack, memory viewer
+  - Key mapping display
+- ROM loader with file dialog support (`.ch8`)
+- Beep audio tuning (amount & phase)
+- Pause/resume support
+
 ## Getting Started
 
 To get the project and vcpkg submodule:
@@ -42,17 +53,6 @@ If you’re unable to use the included `CMakePresets.json`, you must tell CMake 
 cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build build
 ```
-
-## Features
-
-- Accurate CHIP-8 emulation (timing, sound, instructions)
-- Customizable colors for screen and debugger (via ImGui)
-- Built-in debugger:
-  - Registers, stack, memory viewer
-  - Key mapping display
-- ROM loader with file dialog support (`.ch8`)
-- Beep audio tuning (amount & phase)
-- Pause/resume support
 
 ## ROMs
 
