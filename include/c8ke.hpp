@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "globals.hpp"
 #include <chrono>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <random>
