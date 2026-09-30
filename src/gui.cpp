@@ -24,29 +24,29 @@ static void Settings_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void
 	CustomColors* colorSettings = (CustomColors*)user_data;
 	float r, g, b, a;
 
-	if (sscanf_s(line, "emuFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+	if (sscanf(line, "emuFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
 		colorSettings->emuFg = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "emuBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+	else if (sscanf(line, "emuBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
 		colorSettings->emuBg = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgColor1=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+	else if (sscanf(line, "dbgColor1=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
 		colorSettings->dbgColor1 = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgColor2=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+	else if (sscanf(line, "dbgColor2=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
 		colorSettings->dbgColor2 = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgColor3=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+	else if (sscanf(line, "dbgColor3=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
 		colorSettings->dbgColor3 = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+	else if (sscanf(line, "dbgBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
 		colorSettings->dbgBg = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgHeaderFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+	else if (sscanf(line, "dbgHeaderFg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
 		colorSettings->dbgHeaderFg = ImVec4(r, g, b, a);
-	else if (sscanf_s(line, "dbgHeaderBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+	else if (sscanf(line, "dbgHeaderBg=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
 		colorSettings->dbgHeaderBg = ImVec4(r, g, b, a);
 
 	CustomAudio* audioSettings = (CustomAudio*)user_data;
 	int val;
 
-	if (sscanf_s(line, "beepAmount=%d", &val) == 1)
+	if (sscanf(line, "beepAmount=%d", &val) == 1)
 		audioSettings->beepAmount = val;
-	else if (sscanf_s(line, "beepPhase=%d", &val) == 1)
+	else if (sscanf(line, "beepPhase=%d", &val) == 1)
 		audioSettings->beepPhase = val;
 
 }
@@ -82,7 +82,7 @@ SDL_Keycode GUI::findSDLKeycode(uint8_t chip8Key) {
 
 void GUI::initializeGui() {
 	/* SDL */
-	checkError(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO), SDL_GetError());
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	// main window
 	window = SDL_CreateWindow("c8ke", windowWidth, windowHeight, SDL_WINDOW_HIGH_PIXEL_DENSITY);
 	checkError((window == nullptr), SDL_GetError());
